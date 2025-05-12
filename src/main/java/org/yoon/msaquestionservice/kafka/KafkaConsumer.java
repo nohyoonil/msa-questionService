@@ -16,24 +16,21 @@ import java.util.HashMap;
 public class KafkaConsumer {
 
     private final ObjectMapper objectMapper;
+    private final KafkaProducer kafkaProducer;
     private final QuestionRepository questionRepository;
 
     @KafkaListener(topics = "vote.created", groupId = "question-service")
     public void listen(String message) {
-        System.out.println("[✅ 수신된 Kafka 메시지] " + message);
-
         try {
             HashMap<String, Object> map = objectMapper.readValue(message, HashMap.class);
-
             Long questionId = Long.valueOf(map.get("questionId").toString());
-
             Question question = questionRepository.findById(questionId)
                     .orElseThrow(() -> new RuntimeException("질문을 찾을 수 없습니다. ID: " + questionId));
 
             question.plusVotedSum();
+            questionRepository.save(question);
             map.put("reward", question.getReward());
-
-            System.out.println("[🧾 응답 데이터] " + map);
+            kafkaProducer.send("validate.question", objectMapper.writeValueAsString(map));
 
         } catch (JsonProcessingException e) {
             System.err.println("[❌ JSON 파싱 실패] " + e.getMessage());
