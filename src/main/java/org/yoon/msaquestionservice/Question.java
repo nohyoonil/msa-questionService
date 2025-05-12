@@ -21,4 +21,8 @@ public class Question {
     private String content;
     private int reward; //투표에 대한 보상
     private int votedSum; //해당 질문 총 투표수
+
+    public void plusVotedSum() {
+        this.votedSum += 1;
+    }
 }
