@@ -19,7 +19,7 @@ public class KafkaConsumer {
     private final KafkaProducer kafkaProducer;
     private final QuestionRepository questionRepository;
 
-    @KafkaListener(topics = "vote.created", groupId = "question-service")
+    @KafkaListener(topics = "validate.question", groupId = "question-service")
     public void listen(String message) {
         try {
             HashMap<String, Object> map = objectMapper.readValue(message, HashMap.class);
@@ -30,7 +30,7 @@ public class KafkaConsumer {
             question.plusVotedSum();
             questionRepository.save(question);
             map.put("reward", question.getReward());
-            kafkaProducer.send("validate.question", objectMapper.writeValueAsString(map));
+            kafkaProducer.send("validate.member", objectMapper.writeValueAsString(map));
 
         } catch (JsonProcessingException e) {
             System.err.println("[❌ JSON 파싱 실패] " + e.getMessage());
