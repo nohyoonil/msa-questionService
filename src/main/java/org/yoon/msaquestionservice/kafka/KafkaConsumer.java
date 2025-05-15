@@ -8,8 +8,8 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.yoon.msaquestionservice.Question;
 import org.yoon.msaquestionservice.QuestionRepository;
+import org.yoon.msaquestionservice.model.dto.VoteDetailDto;
 
-import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -22,15 +22,15 @@ public class KafkaConsumer {
     @KafkaListener(topics = "validate.question", groupId = "question-service")
     public void listen(String message) {
         try {
-            HashMap<String, Object> map = objectMapper.readValue(message, HashMap.class);
-            Long questionId = Long.valueOf(map.get("questionId").toString());
+            VoteDetailDto voteDetail = objectMapper.readValue(message, VoteDetailDto.class);
+            Long questionId = voteDetail.getQuestionId();
             Question question = questionRepository.findById(questionId)
                     .orElseThrow(() -> new RuntimeException("질문을 찾을 수 없습니다. ID: " + questionId));
 
             question.plusVotedSum();
             questionRepository.save(question);
-            map.put("reward", question.getReward());
-            kafkaProducer.send("validate.member", objectMapper.writeValueAsString(map));
+            voteDetail.setRewards(question.getReward());
+            kafkaProducer.send("validate.member", objectMapper.writeValueAsString(voteDetail));
 
         } catch (JsonProcessingException e) {
             System.err.println("[❌ JSON 파싱 실패] " + e.getMessage());
